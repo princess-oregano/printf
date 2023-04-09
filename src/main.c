@@ -6,6 +6,7 @@ int
 main()
 {
         print("Python coding %% \n");
+        printf("Python coding %% \n");
 
         return 0;
 }
