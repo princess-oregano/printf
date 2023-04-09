@@ -14,20 +14,29 @@
 ; -----------------------------------------------
 ; DESTROYS      | RCX - counts number of chars
 ; -----------------------------------------------
-print:         
+print:
         xor rcx, rcx            ; RCX = 0
-next:
-        push rdi                ; Save registers.
-        push rcx
+.next:
+        cmp byte [rdi], '%'     ; Compare char with '%'
+        jne .non                ; if ch!= '%', then putchar(ch)
+
+        cmp byte [rdi+1], '%'
+        jne .non
+
+        inc rdi
+
+.non:
+        push rcx                ; Save registers.
+        push rdi
         call print_sym          ; Print next symbol in line.
-        pop rcx
         pop rdi
+        pop rcx
 
         inc rdi                 ; Move to next symbol.
         inc rcx                 ; char_counter++
 
-        cmp byte [rdi], 0       ; If not null-terminating byte, 
-        jne next                ; then continue.
+        cmp byte [rdi], 0       ; If not null-terminating byte,
+        jne .next               ; then continue.
 
         mov rax, rcx            ; Move return value to RAX.
         ret
