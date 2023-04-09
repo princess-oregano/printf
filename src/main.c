@@ -5,7 +5,7 @@ extern int print(const char *format, ...);
 int
 main()
 {
-        print("Python coding %% \n");
+        print("Python coding %d %d %d %d %d %d %d\n", 1, 2, 3, 4, 5, 6, 7);
         printf("Python coding %% \n");
 
         return 0;

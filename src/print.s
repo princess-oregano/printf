@@ -1,6 +1,6 @@
         section .data
 
-
+line:   db "$"
 
         section .text
         global print
@@ -16,7 +16,7 @@
 ;               | R9 - fifth arg
 ;               | [IN STACK] sixth, seventh, etc. arg
 ; -----------------------------------------------
-; RETURN        | RAX - number of chars written
+; RETURN        | Number of chars written.
 ; -----------------------------------------------
 ; DESTROYS      | R15 - counts number of chars
 ;               | R14 - counts args
@@ -36,7 +36,9 @@ print:
 
 .print_arg:
         inc rdi                 ; Now [RDI] - symbol of arg type.
+        push rdi
         call arg                ; Print argument.
+        pop rdi
         inc rdi                 ; Proceed to next symbol.
         inc r14                 ; arg_counter++
 
@@ -84,31 +86,41 @@ print_sym:
 ; -----------------------------------------------
 ; RETURN        | NONE
 ; -----------------------------------------------
-; DESTROYS      | 
+; DESTROYS      | RAX - contains argument
 ; -----------------------------------------------
-arg:
+arg:    
+        call push_arg           ; Push next argument to stack.
+
+        pop rax                 ; Pop argument to RAX.
+        call print_hex
+
         ret
 
 ; -----------------------------------------------
-; DESCRIPTION   | Pushes next arg to stack or does nothing.
+; DESCRIPTION   | Pushes next arg on top of stack.
 ; -----------------------------------------------
 ; ENTRY         | R14 - number of current arg
 ; -----------------------------------------------
 ; RETURN        | NONE
 ; -----------------------------------------------
 ; DESTROYS      | RAX - contains jump-value
+;               | RBX - contains return address
 ; -----------------------------------------------
 push_arg:
-        mov rax, [.ARG_TABLE + r14 * 8]
+        pop rbx                 ; Save return address.
+
+        cmp r14, 6
+        jge .arg_stk
+        mov rax, [.arg_table + r14 * 8]
         jmp rax
          
 .arg_table:
-        .quad   .arg_rsi
-        .quad   .arg_rdx
-        .quad   .arg_rcx
-        .quad   .arg_r8
-        .quad   .arg_r9
-        .quad   .arg_stk
+        dq     .arg_rsi
+        dq     .arg_rdx
+        dq     .arg_rcx
+        dq     .arg_r8
+        dq     .arg_r9
+        dq     .arg_stk
 
 .arg_rsi:
         push rsi
@@ -131,7 +143,45 @@ push_arg:
         jmp .ret
 
 .arg_stk:
+        pop rcx                 ; [IN STACK] ret_val of push_arg, arg, THEN value
+        pop rsi
+        pop r8
+        pop r9                  ; Value.
+        push r8
+        push rsi
+        push rcx
+        push r9
 
 .ret:
+        push rbx                ; Push return address.
+
         ret
 
+; -----------------------------------------------
+; DESCRIPTION   | Prints decimal number.
+; -----------------------------------------------
+; ENTRY         | RAX - number to print
+; -----------------------------------------------
+; RETURN        | NONE
+; -----------------------------------------------
+; DESTROYS      | RAX, RSI, RDI, RDX
+; -----------------------------------------------
+print_hex:
+        push rax 
+        push rsi 
+        push rdi 
+        push rdx
+
+        mov rax, 1
+        lea rsi, line
+        mov rdi, 1
+        mov rdx, 1
+
+        syscall
+
+        pop rdx 
+        pop rdi 
+        pop rsi 
+        pop rax
+
+        ret
