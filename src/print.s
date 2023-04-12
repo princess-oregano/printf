@@ -36,11 +36,10 @@ print:
 
 .print_arg:
         inc rdi                 ; Now [RDI] - symbol of arg type.
-        push rdi
         call arg                ; Print argument.
-        pop rdi
         inc rdi                 ; Proceed to next symbol.
         inc r14                 ; arg_counter++
+        jmp .next
 
 .symb:
         push r15                ; Save registers.
@@ -55,8 +54,6 @@ print:
         cmp byte [rdi], 0       ; If not null-terminating byte,
         jne .next               ; then continue.
 
-        mov rax, r15            ; Move return value to RAX.
-
         ret
 
 ; -----------------------------------------------
@@ -66,15 +63,25 @@ print:
 ; -----------------------------------------------
 ; RETURN        | NONE
 ; -----------------------------------------------
-; DESTROYS      | RAX, RDI, RSI, RDX - for syscall
+; DESTROYS      | NONE
 ; -----------------------------------------------
 print_sym:
+        push rax 
+        push rsi 
+        push rdi 
+        push rdx
+
         mov rax, 1
         mov rsi, rdi
         mov rdi, 1
         mov rdx, 1
 
         syscall
+
+        pop rdx 
+        pop rdi 
+        pop rsi 
+        pop rax
 
         ret
 
@@ -87,11 +94,30 @@ print_sym:
 ; RETURN        | NONE
 ; -----------------------------------------------
 ; DESTROYS      | RAX - contains argument
+;               | R11, R10
 ; -----------------------------------------------
 arg:    
-        call push_arg           ; Push next argument to stack.
+        call push_arg           ; Moves next arg to rax.
 
-        pop rax                 ; Pop argument to RAX.
+        xor r11, r11
+        mov r11b, byte [rdi]
+        sub r11b, 0x62          ; r11 - 'b'
+
+        mov r10, [.spec_table + r11 * 8]
+        jmp r10
+
+.spec_table:
+        dq     .sp_b
+        dq     .sp_c
+        dq     .sp_d
+
+.sp_b:
+
+.sp_c:
+
+.sp_d:
+        
+.sp_done:
         call print_hex
 
         ret
@@ -109,10 +135,10 @@ arg:
 push_arg:
         pop rbx                 ; Save return address.
 
-        cmp r14, 6
+        cmp r14, 5
         jge .arg_stk
-        mov rax, [.arg_table + r14 * 8]
-        jmp rax
+        mov r15, [.arg_table + r14 * 8]
+        jmp r15
          
 .arg_table:
         dq     .arg_rsi
@@ -120,37 +146,34 @@ push_arg:
         dq     .arg_rcx
         dq     .arg_r8
         dq     .arg_r9
-        dq     .arg_stk
 
 .arg_rsi:
-        push rsi
+        mov rax, rsi
         jmp .ret
 
 .arg_rdx:
-        push rdx
+        mov rax, rdx
         jmp .ret
 
 .arg_rcx:
-        push rcx
+        mov rax, rcx
         jmp .ret
 
 .arg_r8:
-        push r8
+        mov rax, r8
         jmp .ret
 
 .arg_r9:
-        push r9
+        mov rax, r9
         jmp .ret
 
 .arg_stk:
-        pop rcx                 ; [IN STACK] ret_val of push_arg, arg, THEN value
-        pop rsi
+        pop rcx                 ; [IN STACK] Lift value.
         pop r8
-        pop r9                  ; Value.
+        pop rax                 ; Value.
+        push rax
         push r8
-        push rsi
         push rcx
-        push r9
 
 .ret:
         push rbx                ; Push return address.
@@ -164,7 +187,7 @@ push_arg:
 ; -----------------------------------------------
 ; RETURN        | NONE
 ; -----------------------------------------------
-; DESTROYS      | RAX, RSI, RDI, RDX
+; DESTROYS      | NONE
 ; -----------------------------------------------
 print_hex:
         push rax 

@@ -8,7 +8,7 @@ OBJ_S := $(addprefix $(OBJDIR)/, $(SRC:.s=.o))
 TARGET := out
 
 ASM := nasm
-ASMFLAGS := -f elf64
+ASMFLAGS := -g -f elf64
 CC := gcc
 CFLAGS := -g -no-pie
 
