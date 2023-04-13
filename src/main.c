@@ -5,7 +5,7 @@ extern int print(const char *format, ...);
 int
 main()
 {
-        print("test: %b %o %d %x %s%c %s %u\n", 5, 8, 21313, 65, 
+        print("test: %b %o %d %x %s%c %s %u\n", 5, 8, -2147483649, 65, 
                         "careful: error ahead", '!', "here-->", 123);
 
         printf("test: %o %d %x %s%c %s %s\n", 8, 21313, 65, 
