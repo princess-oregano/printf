@@ -540,7 +540,7 @@ print_str:
         pop rax
         pop rdi
         pop rsi
-        pop rcx
+        pop rdx
         pop rcx
 
         ret
