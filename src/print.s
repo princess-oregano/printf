@@ -50,6 +50,7 @@ str_len:
 print:
         xor r14, r14            ; R14 = 0
         xor r15, r15            ; R15 = 0
+
 .next:
         cmp byte [rdi], '%'     ; Compare char with '%'.
         jne .symb               ; If ch!= '%', then putchar(ch).
@@ -92,6 +93,7 @@ print:
 ; DESTROYS      | NONE
 ; -----------------------------------------------
 print_sym:
+        push rcx
         push rax
         push rsi
         push rdi
@@ -108,6 +110,7 @@ print_sym:
         pop rdi
         pop rsi
         pop rax
+        pop rcx
 
         ret
 
@@ -122,17 +125,17 @@ print_sym:
 ; DESTROYS      | RAX - contains argument
 ;               | R11, R10
 ; -----------------------------------------------
-arg:
+arg:            
         call push_arg           ; Moves next arg to rax.
 
         xor r11, r11
         mov r11b, byte [rdi]
 
         cmp r11b, 'b'
-        jg .err
+        jl .err
 
         cmp r11b, 'x'
-        jl .err
+        jg .err
 
         sub r11b, 0x62          ; r11 - 'b'
 
@@ -182,7 +185,7 @@ arg:
 .sp_num:
         call print_num
 
-.ret:
+.ret:   
         ret
 
 ; -----------------------------------------------
@@ -231,12 +234,7 @@ push_arg:
         jmp .ret
 
 .arg_stk:
-        pop rcx                 ; [IN STACK] Lift value.
-        pop r8
-        pop rax                 ; Value.
-        push rax                ; Return everything to place.
-        push r8
-        push rcx
+        mov rax, [rsp + r14 * 8 - 3 * 8]
 
 .ret:
         push rbx                ; Push return address.
@@ -467,6 +465,13 @@ print_num:
 
         syscall
 
+        mov rcx, rdx
+        sub rsi, rdx
+.loop:
+        mov byte [rsi], '0'
+        dec rsi
+        loop .loop
+        
         pop rdx
         pop rdi
         pop rsi
@@ -485,6 +490,7 @@ print_num:
 ; DESTROYS      | NONE
 ; -----------------------------------------------
 print_char:
+        push rcx
         push rdx
         push rsi
         push rdi
@@ -501,6 +507,7 @@ print_char:
         pop rdi
         pop rsi
         pop rdx
+        pop rcx
 
         ret
 
@@ -537,3 +544,4 @@ print_str:
         pop rcx
 
         ret
+
