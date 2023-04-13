@@ -22,11 +22,11 @@ run:
 
 out: $(OBJDIR) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o)
 	printf "%s\n" "Linking..."
-	$(CC) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o) -o $(TARGET) $(CFLAGS)
+	$(CC) $(CFLAGS) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o) -o $(TARGET) 
 
 $(OBJDIR)/$(SRC_C:.c=.o): $(SRCDIR)/$(SRC_C)
 	printf "%s\n" "Compiling $@..."
-	$(CC) -c $^ -o  $@
+	$(CC) $(CFLAGS) -c $^ -o  $@
 
 $(OBJDIR)/$(SRC_S:.s=.o): $(SRCDIR)/$(SRC_S)
 	printf "%s\n" "Compiling $@..."

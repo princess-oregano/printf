@@ -5,7 +5,7 @@ extern int print(const char *format, ...);
 int
 main()
 {
-        print("Python coding %d %d %d %d %d %d %d\n", 1, 2, 3, 4, 5, 6, 7);
+        print("Debugging))))) %d\n", -2147483648);
 
         return 0;
 }

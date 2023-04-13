@@ -1,9 +1,35 @@
         section .data
 
-line:   db "$"
+ERR_BUF:        db "ERROR", 0
+BIN_BUF:        db "0000000000000000000000000000000000000000000000000000000000000000", 0
+OCT_BUF:        db "000000000000000000000000", 0
+DEC_BUF:        db "00000000000000000000", 0
+HEX_BUF:        db "0000000000000000", 0
 
         section .text
         global print
+
+; -----------------------------------------------
+; DESCRIPTION   | Find length of line, pushes it to RCX.
+; -----------------------------------------------
+; ENTRY         | RDI - pointer to line
+; -----------------------------------------------
+; RETURN        | Number of chars.
+; -----------------------------------------------
+; DESTROYS      | RCX
+; -----------------------------------------------
+str_len:
+        mov rcx, rdi
+
+.strlen_loop:
+        cmp byte [rcx], 0
+        je .done
+        inc rcx
+        jmp .strlen_loop
+
+.done:
+        sub rcx, rdi
+        ret
 
 ; -----------------------------------------------
 ; DESCRIPTION   | General print() function.
@@ -66,9 +92,9 @@ print:
 ; DESTROYS      | NONE
 ; -----------------------------------------------
 print_sym:
-        push rax 
-        push rsi 
-        push rdi 
+        push rax
+        push rsi
+        push rdi
         push rdx
 
         mov rax, 1
@@ -78,9 +104,9 @@ print_sym:
 
         syscall
 
-        pop rdx 
-        pop rdi 
-        pop rsi 
+        pop rdx
+        pop rdi
+        pop rsi
         pop rax
 
         ret
@@ -96,7 +122,7 @@ print_sym:
 ; DESTROYS      | RAX - contains argument
 ;               | R11, R10
 ; -----------------------------------------------
-arg:    
+arg:
         call push_arg           ; Moves next arg to rax.
 
         xor r11, r11
@@ -107,23 +133,52 @@ arg:
         jmp r10
 
 .spec_table:
-        dq     .sp_b
-        dq     .sp_c
-        dq     .sp_d
+        dq      .sp_b
+        dq      .sp_c
+        dq      .sp_d
+        times ('o' - 'd' - 1) dq .err
+        dq      .sp_o
+        times ('s' - 'o' - 1) dq .err
+        dq      .sp_s
+        times ('x' - 's' - 1) dq .err
+        dq      .sp_x
+
+.err:
+        
+        jmp .ret
 
 .sp_b:
-
-.sp_c:
+        call print_bin
+        jmp .sp_num
 
 .sp_d:
-        
-.sp_done:
-        call print_hex
+        call print_dec
+        jmp .sp_num
 
+.sp_o:
+        call print_oct
+        jmp .sp_num
+
+.sp_x:
+        call print_hex
+        jmp .sp_num
+
+.sp_c:  
+        call print_char
+        jmp .ret
+
+.sp_s:
+        call print_str
+        jmp .ret
+
+.sp_num:
+        call print_num
+
+.ret:
         ret
 
 ; -----------------------------------------------
-; DESCRIPTION   | Pushes next arg on top of stack.
+; DESCRIPTION   | Moves next arg to RAX.
 ; -----------------------------------------------
 ; ENTRY         | R14 - number of current arg
 ; -----------------------------------------------
@@ -139,7 +194,7 @@ push_arg:
         jge .arg_stk
         mov r15, [.arg_table + r14 * 8]
         jmp r15
-         
+
 .arg_table:
         dq     .arg_rsi
         dq     .arg_rdx
@@ -171,7 +226,7 @@ push_arg:
         pop rcx                 ; [IN STACK] Lift value.
         pop r8
         pop rax                 ; Value.
-        push rax
+        push rax                ; Return everything to place.
         push r8
         push rcx
 
@@ -180,31 +235,297 @@ push_arg:
 
         ret
 
+;___________________________SPECIFIERS_________________________________________
+
+; -----------------------------------------------
+; DESCRIPTION   | Prints binary number.
+; -----------------------------------------------
+; ENTRY         | RAX - number to print
+; -----------------------------------------------
+; RETURN        | RSI - pointer to start of BUF
+; -----------------------------------------------
+; DESTROYS      | NONE
+; -----------------------------------------------
+print_bin:
+        push rcx
+        push rdx
+
+        mov rcx, 64
+	mov rsi, BIN_BUF
+        add rsi, rcx
+        dec rsi
+
+.loop:
+	mov dl, 1
+        and dl, al
+        add dl, 0x30
+
+        mov byte [rsi], dl
+
+        dec rsi
+        shr rax, 1
+
+        cmp rax, 0
+        je .done
+
+        loop .loop
+
+.done:
+        inc rsi
+        pop rdx
+        pop rcx
+
+        ret
+
+; -----------------------------------------------
+; DESCRIPTION   | Prints hex number.
+; -----------------------------------------------
+; ENTRY         | RAX - number to print
+; -----------------------------------------------
+; RETURN        | RSI - pointer to start of BUF
+; -----------------------------------------------
+; DESTROYS      | NONE
+; -----------------------------------------------
+print_hex:
+        push rcx
+        push rdx
+
+        xor rdx, rdx
+
+        mov rcx, 16
+	mov rsi, HEX_BUF
+        add rsi, rcx
+        dec rsi
+
+.loop:
+	mov dl, 0xF
+        and dl, al
+
+        cmp dl, 10
+        jbe .num
+        jmp .letter
+
+.num:
+        add dl, '0'
+        jmp .ret
+
+.letter:
+        add dl, 'A' - 10
+
+.ret:
+        mov byte [rsi], dl
+
+        dec rsi
+        shr rax, 4
+
+        cmp rax, 0
+        je .done
+
+        loop .loop
+
+.done:
+        inc rsi
+        pop rdx
+        pop rcx
+
+        ret
+
+; -----------------------------------------------
+; DESCRIPTION   | Prints octal number.
+; -----------------------------------------------
+; ENTRY         | RAX - number to print
+; -----------------------------------------------
+; RETURN        | RSI - pointer to start of BUF
+; -----------------------------------------------
+; DESTROYS      | NONE
+; -----------------------------------------------
+print_oct:
+        push rcx
+        push rdx
+
+        xor rdx, rdx
+
+        mov rcx, 24
+	mov rsi, OCT_BUF
+        add rsi, rcx
+        dec rsi
+
+.loop:
+	mov dl, 0x7
+        and dl, al
+
+        add dl, '0'
+
+        mov byte [rsi], dl
+
+        dec rsi
+        shr rax, 3
+
+        cmp rax, 0
+        je .done
+
+        loop .loop
+
+.done:
+
+        inc rsi
+        pop rdx
+        pop rcx
+
+        ret
+
 ; -----------------------------------------------
 ; DESCRIPTION   | Prints decimal number.
 ; -----------------------------------------------
 ; ENTRY         | RAX - number to print
 ; -----------------------------------------------
-; RETURN        | NONE
+; RETURN        | RSI - pointer to start of BUF
 ; -----------------------------------------------
 ; DESTROYS      | NONE
 ; -----------------------------------------------
-print_hex:
-        push rax 
-        push rsi 
-        push rdi 
+print_dec:
+        push rcx
+        push rdx
+        push r8
+        push rax
+        
+        mov rcx, 20
+	mov rsi, DEC_BUF
+        add rsi, rcx
+        dec rsi
+
+        test eax, eax
+        jns .next
+
+        neg eax
+
+.next:
+        mov r8, 10
+.loop: 
+        xor rdx, rdx
+
+        div r8
+		       
+	add dl, '0'
+        mov byte [rsi], dl
+        dec rsi
+
+        cmp rax, 0
+        je .done
+
+        loop .loop
+
+.done:
+        pop rax
+        test eax, eax
+        js .sign
+        jmp .no_sign
+
+.sign:  
+        mov byte [rsi], '-'
+        dec rsi
+        
+.no_sign:
+        inc rsi
+
+        pop r8
+        pop rdx
+        pop rcx
+
+        ret
+
+; -----------------------------------------------
+; DESCRIPTION   | Prints null-terminated line with number.
+; -----------------------------------------------
+; ENTRY         | RSI - pointer to buffer
+; -----------------------------------------------
+; RETURN        | Number of chars written.
+; -----------------------------------------------
+; DESTROYS      | NONE
+; -----------------------------------------------
+print_num:
+        push rax
+        push rcx
+        push rsi
+        push rdi
         push rdx
 
+        mov rdi, rsi
+        call str_len
+
         mov rax, 1
-        lea rsi, line
         mov rdi, 1
+        mov rdx, rcx
+
+        syscall
+
+        pop rdx
+        pop rdi
+        pop rsi
+        pop rcx
+        pop rax
+
+        ret
+
+; -----------------------------------------------
+; DESCRIPTION   | Prints char.
+; -----------------------------------------------
+; ENTRY         | RAX - character to print.
+; -----------------------------------------------
+; RETURN        | Number of chars written.
+; -----------------------------------------------
+; DESTROYS      | NONE
+; -----------------------------------------------
+print_char:
+        push rdx
+        push rsi
+        push rdi
+        push rax
+
+        mov rax, 1
+        mov rdi, 1
+        mov rsi, rsp
         mov rdx, 1
 
         syscall
 
-        pop rdx 
-        pop rdi 
-        pop rsi 
         pop rax
+        pop rdi
+        pop rsi
+        pop rdx
+
+        ret
+
+; -----------------------------------------------
+; DESCRIPTION   | Prints string.
+; -----------------------------------------------
+; ENTRY         | RAX - pointer to line.
+; -----------------------------------------------
+; RETURN        | Number of chars written.
+; -----------------------------------------------
+; DESTROYS      | NONE
+; -----------------------------------------------
+print_str:
+        push rcx
+        push rdx
+        push rsi
+        push rdi
+        push rax
+
+        mov rdi, rax
+        call str_len
+        mov rdx, rcx
+
+        mov rsi, rax
+        mov rax, 1
+        mov rdi, 1
+
+        syscall
+
+        pop rax
+        pop rdi
+        pop rsi
+        pop rcx
+        pop rcx
 
         ret
