@@ -5,7 +5,9 @@ SRC_C := main.c
 SRC_S := print.s
 OBJ_C := $(addprefix $(OBJDIR)/, $(SRC:.c=.o))
 OBJ_S := $(addprefix $(OBJDIR)/, $(SRC:.s=.o))
-TARGET := out
+SRC_C2S := c2asm.s
+ASM2C := asm2c
+C2ASM := c2asm
 
 ASM := nasm
 ASMFLAGS := -g -f elf64
@@ -13,16 +15,23 @@ CC := gcc
 CFLAGS := -g -no-pie
 
 .SILENT:
-all: out run
+all: out_asm2c out_c2asm run
 
 run:
 	printf "%s\n" "Running..."
-	./$(TARGET)
-	printf "%s\n" "Finished."
+	printf "%s\n\n" "Asm print(), called from C:"
+	./$(ASM2C)
+	printf "\n%s\n\n" "C printf(), called from Asm:"
+	./$(C2ASM)
+	printf "\n%s\n" "Finished."
 
-out: $(OBJDIR) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o)
+out_c2asm:
+	$(ASM) $(ASMFLAGS) src/c2asm.s -o obj/c2asm.o
+	$(CC) $(CFLAGS) obj/c2asm.o -o $(C2ASM)
+
+out_asm2c: $(OBJDIR) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o)
 	printf "%s\n" "Linking..."
-	$(CC) $(CFLAGS) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o) -o $(TARGET) 
+	$(CC) $(CFLAGS) $(OBJDIR)/$(SRC_C:.c=.o) $(OBJDIR)/$(SRC_S:.s=.o) -o $(ASM2C) 
 
 $(OBJDIR)/$(SRC_C:.c=.o): $(SRCDIR)/$(SRC_C)
 	printf "%s\n" "Compiling $@..."
@@ -44,6 +53,6 @@ clean:
 distclean:
 	printf "%s\n" "Removing built files..."
 	rm -rf $(OBJDIR)
-	rm $(TARGET)
+	rm $(ASM2C)
 	printf "%s\n" "Done."
 
