@@ -5,7 +5,7 @@ extern int print(const char *format, ...);
 int
 main()
 {
-        print("Debugging))))) %d\n", -2147483648);
+        print("Debugging))))) %x\n", -2147483648);
 
         return 0;
 }

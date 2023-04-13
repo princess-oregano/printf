@@ -127,6 +127,13 @@ arg:
 
         xor r11, r11
         mov r11b, byte [rdi]
+
+        cmp r11b, 'b'
+        jg .err
+
+        cmp r11b, 'x'
+        jl .err
+
         sub r11b, 0x62          ; r11 - 'b'
 
         mov r10, [.spec_table + r11 * 8]
@@ -144,7 +151,8 @@ arg:
         dq      .sp_x
 
 .err:
-        
+        lea rax, ERR_BUF
+        call print_str
         jmp .ret
 
 .sp_b:
