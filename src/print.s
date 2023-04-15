@@ -44,12 +44,10 @@ str_len:
 ; -----------------------------------------------
 ; RETURN        | Number of chars written.
 ; -----------------------------------------------
-; DESTROYS      | R15 - counts number of chars
-;               | R14 - counts args
+; DESTROYS      | R14 - counts args
 ; -----------------------------------------------
 print:
         xor r14, r14            ; R14 = 0
-        xor r15, r15            ; R15 = 0
 
 .next:
         cmp byte [rdi], '%'     ; Compare char with '%'.
@@ -76,7 +74,6 @@ print:
         pop r15
 
         inc rdi                 ; Move to next symbol.
-        inc r15                 ; char_counter++
 
         cmp byte [rdi], 0       ; If not null-terminating byte,
         jne .next               ; then continue.
@@ -307,7 +304,7 @@ print_hex:
 	mov dl, 0xF
         and dl, al
 
-        cmp dl, 10
+        cmp dl, 9
         jbe .num
         jmp .letter
 
